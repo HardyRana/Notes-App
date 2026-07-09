@@ -42,7 +42,7 @@ buttonsFrame.pack(fill="x", padx=20, pady=20)
 # Creating an empty list for notes
 notes = []
 
-editing_index = None
+editing_note = None
 
 # Function to create a card with index 
 def create_card(note, index):
@@ -51,10 +51,33 @@ def create_card(note, index):
     row = index // NUM_COLUMNS
     column = index % NUM_COLUMNS
 
+    if note["pinned"]:
+        card_color = PINNED_CARD
+        pinBtn_color = PINNED_ICON
+        pinBtn_textcolor = BACKGROUND
+    else:
+        card_color = CARD
+        pinBtn_color = CASEBUTTONS
+        pinBtn_textcolor = "#D4A017"
+
     # Creating a card
-    card = ctk.CTkFrame(cardsContainer, fg_color=CARD)
+    card = ctk.CTkFrame(cardsContainer, fg_color=card_color)
     card.grid(row=row, column=column, padx=10, pady=10, sticky="nw")
     card.grid_columnconfigure(0, weight=1)
+
+    pinBtn = ctk.CTkButton(
+                card,
+                text="📌",
+                fg_color=pinBtn_color,
+                hover_color=pinBtn_color,
+                height=42,
+                width=42,
+                cursor="hand2",
+                font=BUTTON_FONT,
+                text_color=pinBtn_textcolor,
+                command=lambda note=note: pin_note(note)
+                )
+    pinBtn.grid(pady=10, row=0, column=1, sticky="ne", padx=(0, 10))
 
     noteText = ctk.CTkLabel(
                 card,
@@ -89,7 +112,7 @@ def create_card(note, index):
                 )
     editedLabel.grid(row=2, column=0, sticky="w", padx=15)
 
-    editDelButtonFrame = ctk.CTkFrame(card, fg_color=CARD)
+    editDelButtonFrame = ctk.CTkFrame(card, fg_color=card_color)
     editDelButtonFrame.grid(row=3, column=0, sticky="w",padx=10,pady=(0, 10))
 
     editBtn = ctk.CTkButton(
@@ -102,7 +125,7 @@ def create_card(note, index):
                 cursor="hand2",
                 font=BUTTON_FONT,
                 anchor="w",
-                command=lambda: edit_note(index)
+                command=lambda note=note: edit_note(note)
                 )
     editBtn.pack(side="left", padx=(0,15), pady=10)
 
@@ -116,13 +139,13 @@ def create_card(note, index):
                 cursor="hand2",
                 font=BUTTON_FONT,
                 anchor="w",
-                command=lambda:delete_note(index)
+                command=lambda note=note:delete_note(note)
                 )
     deleteBtn.pack(side="left", pady=10)
 
 # Function to handle notes - either add a new note or save changes to edited note
 def handle_note():
-    if editing_index == None:
+    if editing_note == None:
         add_note()
     else:
         save_changes()
@@ -142,9 +165,9 @@ def add_note():
 
     notes.append(new_note)
 
-    create_card(new_note, len(notes)-1)
-    textbox.delete("1.0", "end")
     save_notes()
+    refresh_notes()
+    textbox.delete("1.0", "end")
 
 # Function to save notes in notes.json file
 def save_notes():
@@ -161,17 +184,25 @@ def load_notes():
         notes = []
         save_notes()
 
-    for index, note in enumerate(notes):
-        create_card(note, index)
+    display_index = 0
+    for note in notes:
+        if note["pinned"]:
+            create_card(note, display_index)
+            display_index +=1
+    
+    for note in notes:
+        if not note["pinned"]:
+            create_card(note, display_index)
+            display_index +=1
 
 # Function to delete note
-def delete_note(index):
+def delete_note(note):
     answer = messagebox.askyesno("Delete Note","Are you sure you want to delete this note?") # returns true or false
 
     if not answer: # means cancel note deletion
         return 
 
-    notes.pop(index)
+    notes.remove(note)
     save_notes()
     refresh_notes()
 
@@ -180,26 +211,42 @@ def refresh_notes():
     for widget in cardsContainer.winfo_children():
         widget.destroy()
 
-    for index, note in enumerate(notes):
-        create_card(note, index)
+    display_index = 0
+
+    for note in notes:
+        if note["pinned"]:
+            create_card(note, display_index)
+            display_index +=1
+    
+    for note in notes:
+        if not note["pinned"]:
+            create_card(note, display_index)
+            display_index +=1
 
 # Function to edit a note
-def edit_note(index): 
-    global editing_index
-    editing_index = index 
+def edit_note(note): 
+    global editing_note
+    editing_note = note
     textbox.delete("1.0", "end")
-    textbox.insert("1.0", notes[index]["text"])
+    textbox.insert("1.0", note["text"])
     addNoteBtn.configure(text="Save Changes")
 
+# Function to save changes when a user has edit a note
 def save_changes():
-    global editing_index
-    notes[editing_index]["text"] = textbox.get("1.0", "end-1c").strip()
-    notes[editing_index]["edited"] =  datetime.now().strftime("%d %b %Y, %I:%M %p") 
+    global editing_note
+    editing_note["text"] = textbox.get("1.0", "end-1c").strip()
+    editing_note["edited"] =  datetime.now().strftime("%d %b %Y, %I:%M %p") 
     save_notes()
     refresh_notes()
     textbox.delete("1.0", "end")
-    editing_index = None
+    editing_note = None
     addNoteBtn.configure(text="Add Note")
+
+# Function to pin a note
+def pin_note(note):
+    note["pinned"] = not note["pinned"]
+    save_notes()
+    refresh_notes()
 
 # Add note button
 addNoteBtn = ctk.CTkButton(
