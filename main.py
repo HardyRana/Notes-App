@@ -11,7 +11,8 @@ root = ctk.CTk(fg_color=BACKGROUND)
 
 current_theme = THEMES["Ember"]
 
-root.title("Notes App")
+root.title("Brain Dump - dump your creativity here!")
+root.iconbitmap("icon.ico")
 root.after(100, lambda: root.state("zoomed"))
 
 # Header
@@ -183,17 +184,9 @@ def load_notes():
     except FileNotFoundError:
         notes = []
         save_notes()
-
-    display_index = 0
-    for note in notes:
-        if note["pinned"]:
-            create_card(note, display_index)
-            display_index +=1
     
-    for note in notes:
-        if not note["pinned"]:
-            create_card(note, display_index)
-            display_index +=1
+    display_notes()
+
 
 # Function to delete note
 def delete_note(note):
@@ -211,6 +204,10 @@ def refresh_notes():
     for widget in cardsContainer.winfo_children():
         widget.destroy()
 
+    display_notes()
+
+# Function to display pinned/unpinned notes - cleaner code
+def display_notes():
     display_index = 0
 
     for note in notes:
