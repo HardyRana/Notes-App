@@ -6,13 +6,23 @@ from fonts import TITLE_FONT, BODY_FONT, BUTTON_FONT
 from custom_theme import *
 import json 
 from datetime import datetime
+import os 
+import sys 
 
 root = ctk.CTk(fg_color=BACKGROUND)
 
 current_theme = THEMES["Ember"]
 
+def resource_path(relative_path):
+    try:
+        base_path = sys._MEIPASS
+    except AttributeError:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
+
 root.title("Brain Dump - dump your creativity here!")
-root.iconbitmap("icon.ico")
+root.iconbitmap(resource_path("icon.ico"))
 root.after(100, lambda: root.state("zoomed"))
 
 # Header
@@ -44,6 +54,17 @@ buttonsFrame.pack(fill="x", padx=20, pady=20)
 notes = []
 
 editing_note = None
+
+
+def get_data_path(filename):
+    if getattr(sys, "frozen", False):
+        # Running as .exe
+        app_dir = os.path.dirname(sys.executable)
+    else:
+        # Running from source
+        app_dir = os.path.dirname(os.path.abspath(__file__))
+
+    return os.path.join(app_dir, filename)
 
 # Function to create a card with index 
 def create_card(note, index):
@@ -172,14 +193,14 @@ def add_note():
 
 # Function to save notes in notes.json file
 def save_notes():
-    with open("notes.json", "w", encoding="utf-8") as file:
+    with open(get_data_path("notes.json"), "w", encoding="utf-8") as file:
         json.dump(notes, file, indent=4)
 
 # Function to load notes when application is opened
 def load_notes():
     global notes 
     try:
-        with open("notes.json", "r", encoding="utf-8") as file:
+        with open(get_data_path("notes.json"), "r", encoding="utf-8") as file:
             notes = json.load(file)
     except FileNotFoundError:
         notes = []
